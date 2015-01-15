@@ -1,10 +1,12 @@
 # changes-feed
 
-Basic changes feed implementation that runs on top of leveldb
+Basic changes-feed implementation that runs on top of leveldb
 
 ```
 npm install changes-feed
 ```
+
+[![build status](http://img.shields.io/travis/mafintosh/changes-feed.svg?style=flat)](http://travis-ci.org/mafintosh/changes-feed)
 
 ## Usage
 
