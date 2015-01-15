@@ -1,6 +1,6 @@
 {
   "name": "changes-feed",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Basic changes-feed implementation that runs on top of leveldb",
   "main": "index.js",
   "scripts": {
