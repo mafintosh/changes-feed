@@ -59,3 +59,34 @@ tape('append close and reopen', function(t) {
     })
   })
 })
+
+tape('reverse', function(t) {
+  var feed = changes(memdb())
+
+  feed.append('hello', function() {
+    feed.append('world', function() {
+      feed.createReadStream({ reverse: true }, function(err, changes) {
+        t.notOk(err, 'no err')
+        t.same(changes.length, 2, '2 changes')
+        t.same(changes[0], {change:2, value:new Buffer('world')})
+        t.same(changes[1], {change:1, value:new Buffer('hello')})
+        t.end()
+      })
+    })
+  })
+})
+
+tape('limit', function(t) {
+  var feed = changes(memdb())
+
+  feed.append('hello', function() {
+    feed.append('world', function() {
+      feed.createReadStream({ limit: 1 }, function(err, changes) {
+        t.notOk(err, 'no err')
+        t.same(changes.length, 1, 'limited to 1 change')
+        t.same(changes[0], {change:1, value:new Buffer('hello')})
+        t.end()
+      })
+    })
+  })
+})
