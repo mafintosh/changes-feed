@@ -63,6 +63,8 @@ module.exports = function(db) {
 
     var rs = db.createReadStream({
       gt: lexint.pack(since, 'hex'),
+      limit: opts.limit,
+      reverse: opts.reverse,
       valueEncoding: 'binary'
     })
 
