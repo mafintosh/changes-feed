@@ -90,3 +90,38 @@ tape('limit', function(t) {
     })
   })
 })
+
+tape('keys/values only', function(t) {
+  t.plan(14)
+
+  var put = ['hello', 'world']
+  var feed = changes(memdb())
+  var lastChange = 1
+  var lastValIdx = 0
+
+  feed.createReadStream({ live: true, limit: 1, keys: false }, function (err, change) {
+    t.notOk(err, 'no err')
+    t.same(change, new Buffer(put[lastValIdx++]))
+  })
+
+  feed.createReadStream({ live: true, limit: 1, values: false }, function (err, change) {
+    t.notOk(err, 'no err')
+    t.same(change, lastChange++)
+  })
+
+  feed.append(put[0], function() {
+    feed.append(put[1], function() {
+      feed.createReadStream({ limit: 1, keys: false }, function (err, changes) {
+        t.notOk(err, 'no err')
+        t.same(changes.length, 1, 'limited to 1 change')
+        t.same(changes[0], new Buffer(put[0]))
+      })
+
+      feed.createReadStream({ limit: 1, values: false }, function (err, changes) {
+        t.notOk(err, 'no err')
+        t.same(changes.length, 1, 'limited to 1 change')
+        t.same(changes[0], 1)
+      })
+    })
+  })
+})
