@@ -10,7 +10,7 @@ var noop = function() {}
 module.exports = function(db) {
   var feed = {}
   var lock = mutexify()
- 
+
   var ensureCount = function(cb) {
     if (feed.change) return cb()
     collect(db.createKeyStream({reverse:true, limit:1}), function(err, keys) {
@@ -50,29 +50,54 @@ module.exports = function(db) {
     if (!opts) opts = {}
 
     var since = opts.since || 0
+    var keys = opts.keys !== false
+    var values = opts.values !== false
+    var retOpts = {
+      keys: keys,
+      values: values
+    }
 
     if (opts.live) {
-      return from.obj(function read(size, cb) {
+      var ls = from.obj(function read(size, cb) {
         db.get(lexint.pack(since+1, 'hex'), {valueEncoding:'binary'}, function(err, value) {
           if (err && err.notFound) return feed.notify.push([read, cb])
           if (err) return cb(err)
-          cb(null, {change:++since, value:value})
+          cb(null, toResult(++since, value, retOpts))
         })
       })
+
+      if (cb) {
+        ls.on('data', function (data) {
+          cb(null, data)
+        })
+      }
+
+      return ls
     }
 
     var rs = db.createReadStream({
       gt: lexint.pack(since, 'hex'),
       limit: opts.limit,
+      keys: keys,
+      values: values,
       reverse: opts.reverse,
       valueEncoding: 'binary'
     })
 
     var format = function(data, enc, cb) {
-      cb(null, {change:lexint.unpack(data.key, 'hex'), value:data.value})
+      var key = keys && lexint.unpack(values ? data.key : data, 'hex')
+      var val = values && keys ? data.value : data
+
+      cb(null, toResult(key, val, retOpts))
     }
 
     return collect(pump(rs, through.obj(format)), cb)
+  }
+
+  function toResult (key, val, opts) {
+    return !opts.keys ? val :
+      !opts.values ? key :
+      { change: key, value: val }
   }
 
   return feed
