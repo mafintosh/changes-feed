@@ -1,6 +1,5 @@
 var lexint = require('lexicographic-integer')
 var collect = require('stream-collector')
-var mutexify = require('mutexify')
 var through = require('through2')
 var from = require('from2')
 var pump = require('pump')
@@ -9,8 +8,6 @@ var noop = function() {}
 
 module.exports = function(db) {
   var feed = {}
-  var lock = mutexify()
- 
   var ensureCount = function(cb) {
     if (feed.change) return cb()
     collect(db.createKeyStream({reverse:true, limit:1}), function(err, keys) {
@@ -23,15 +20,38 @@ module.exports = function(db) {
 
   feed.change = 0
   feed.notify = []
+  feed.batch = []
 
   feed.append = function(value, cb) {
     if (!cb) cb = noop
     if (!Buffer.isBuffer(value)) value = new Buffer(value)
 
-    lock(function(release) {
-      ensureCount(function(err) {
-        if (err) return release(cb, err)
-        db.put(lexint.pack(++feed.change, 'hex'), value, function(err) {
+    ensureCount(function(err) {
+      if (err) return release(cb, err)
+
+      var batch = feed.batch
+      var change = ++feed.change
+      batch.push({
+        change: change,
+        key: lexint.pack(change, 'hex'),
+        value: value,
+        callback: cb
+      })
+
+      if (batch.length !== 1) return
+
+      // schedule batch commit
+      process.nextTick(function () {
+        batch = batch.slice()
+        feed.batch.length = 0
+
+        db.batch(batch.map(function (item) {
+          return {
+            type: 'put',
+            key: item.key,
+            value: item.value
+          }
+        }), function(err) {
           var notify = feed.notify
 
           if (notify.length) {
@@ -39,7 +59,9 @@ module.exports = function(db) {
             for (var i = 0; i < notify.length; i++) notify[i][0](1, notify[i][1])
           }
 
-          release(cb, err, {change:feed.change, value:value})
+          batch.forEach(function (item, i) {
+            item.callback(err, { change: batch[i].change, value: value })
+          })
         })
       })
     })
