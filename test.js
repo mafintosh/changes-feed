@@ -90,3 +90,16 @@ tape('limit', function(t) {
     })
   })
 })
+
+tape('count', function(t) {
+  var feed = changes(memdb())
+  feed.append('hello', function() {
+    feed.append('world', function() {
+      feed.count(function(err, count) {
+        t.notOk(err, 'no err')
+        t.same(count, 2)
+        t.end()
+      })
+    })
+  })
+})

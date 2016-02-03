@@ -24,6 +24,13 @@ module.exports = function(db) {
   feed.change = 0
   feed.notify = []
 
+  feed.count = function(cb) {
+    ensureCount(function (err) {
+      if (err) return cb(err)
+      cb(null, feed.change)
+    });
+  }
+
   feed.append = function(value, cb) {
     if (!cb) cb = noop
     if (!Buffer.isBuffer(value)) value = new Buffer(value)
