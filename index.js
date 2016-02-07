@@ -33,7 +33,6 @@ module.exports = function(db) {
 
   feed.append = function(value, cb) {
     if (!cb) cb = noop
-    if (!Buffer.isBuffer(value)) value = new Buffer(value)
 
     lock(function(release) {
       ensureCount(function(err) {
@@ -60,7 +59,7 @@ module.exports = function(db) {
 
     if (opts.live) {
       return from.obj(function read(size, cb) {
-        db.get(lexint.pack(since+1, 'hex'), {valueEncoding:'binary'}, function(err, value) {
+        db.get(lexint.pack(since+1, 'hex'), function(err, value) {
           if (err && err.notFound) return feed.notify.push([read, cb])
           if (err) return cb(err)
           cb(null, {change:++since, value:value})
@@ -71,8 +70,7 @@ module.exports = function(db) {
     var rs = db.createReadStream({
       gt: lexint.pack(since, 'hex'),
       limit: opts.limit,
-      reverse: opts.reverse,
-      valueEncoding: 'binary'
+      reverse: opts.reverse
     })
 
     var format = function(data, enc, cb) {
