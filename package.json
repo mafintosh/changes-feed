@@ -12,7 +12,8 @@
     "mutexify": "^1.0.1",
     "pump": "^1.0.0",
     "stream-collector": "^1.0.1",
-    "through2": "^0.6.3"
+    "through2": "^0.6.3",
+    "thunky": "^0.1.0"
   },
   "devDependencies": {
     "memdb": "^0.2.0",

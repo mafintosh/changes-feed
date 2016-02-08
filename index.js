@@ -4,14 +4,15 @@ var mutexify = require('mutexify')
 var through = require('through2')
 var from = require('from2')
 var pump = require('pump')
+var thunky = require('thunky')
 
 var noop = function() {}
 
 module.exports = function(db) {
   var feed = {}
   var lock = mutexify()
- 
-  var ensureCount = function(cb) {
+
+  var ensureCount = thunky(function(cb) {
     if (feed.change) return cb()
     collect(db.createKeyStream({reverse:true, limit:1}), function(err, keys) {
       if (err) return cb(err)
@@ -19,7 +20,7 @@ module.exports = function(db) {
       feed.change = lexint.unpack(keys[0], 'hex')
       cb()
     })
-  }
+  })
 
   feed.change = 0
   feed.notify = []
